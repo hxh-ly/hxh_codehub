@@ -55,7 +55,19 @@ app.use(userRouter.allowedMethods()) //啥意思啊
 2.在 app/error-handle.js  错误的处理
 3.在 app/index.js on('error')
 4.错误常量 src/constant/err-types.js 方便在2处处理
+
+Q1: 注册密码数据库是明文
+S: 1 user.middleware.js  
+   handlepasssword(ctx,next) 
+   2 utils/password-handle.js
+   3 在1中调用
+   4 1在router中调用
 ```
+
+ ```js
+ //用户登录接口
+ 
+ ```
 
 
 

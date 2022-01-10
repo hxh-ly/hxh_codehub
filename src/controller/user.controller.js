@@ -8,9 +8,6 @@ class UserController {
     //返回数据
     ctx.body = result
   }
-  async getUserByName(ctx) {
-    const { name } = ctx.request.body
-    const result = await service
-  }
+
 }
 module.exports = new UserController()
