@@ -18,6 +18,10 @@ const errorHandle = (error, ctx) => {
       status = 400;
       message = '密码不正确'
       break;
+    case ErrorType.UNAUTHORIZATION:
+      status = 401;
+      message = '未授权'
+      break
     default:
       status = 404;
       message = 'not found';

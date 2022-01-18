@@ -10,7 +10,7 @@ class UserService {
   async getUserByName(name) {
     const statement = `SELECT *  from users WHERE name = ?;`
     const result = await connections.execute(statement, [name])
-    console.log("执行的结果是》。", result);
+    //console.log("执行的结果是》。", result);
     return result[0]
   }
 }

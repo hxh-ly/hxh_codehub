@@ -4,10 +4,9 @@ const errorHandler = require('../app/error-handle')
 const app = new Koa()
 const useRouter = require('../router/user.router')
 const authRouter = require('../router/auth.router')
+const useRoutes = require('../router')
+app.useRoutes = useRoutes
 app.use(bodyParser())
-app.use(useRouter.routes())
-app.use(useRouter.allowedMethods())
-app.use(authRouter.routes())
-app.use(authRouter.allowedMethods())
+app.useRoutes()
 app.on('error', errorHandler)
 module.exports.app = app
