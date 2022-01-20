@@ -21,7 +21,11 @@ const errorHandle = (error, ctx) => {
     case ErrorType.UNAUTHORIZATION:
       status = 401;
       message = '未授权'
-      break
+      break;
+    case ErrorType.UNPERMISSION:
+      status = 401;
+      message = '没有权限';
+      break;
     default:
       status = 404;
       message = 'not found';

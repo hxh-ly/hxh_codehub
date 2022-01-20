@@ -2,6 +2,7 @@ const { PUBLIC_KEY } = require('../app/config')
 const jwt = require('jsonwebtoken')
 const errorType = require('../constant/err-type')
 const UserService = require('../service/user.service')
+const AuthService = require('../service/auth.service')
 const md5password = require('../uitls/password-handle')
 const verifyLogin = async (ctx, next) => {
   //1获取用户名 密码
@@ -30,9 +31,9 @@ const verifyLogin = async (ctx, next) => {
 const verifyAuth = async (ctx, next) => {
   //1 拿到token
   const authorization = ctx.headers.authorization
-  console.log(ctx.headers);
-  if(!authorization) {
-    const error=new Error(errorType.UNAUTHORIZATION)
+  //console.log(ctx.headers);
+  if (!authorization) {
+    const error = new Error(errorType.UNAUTHORIZATION)
     return ctx.app.emit('error', error, ctx)
   }
   const token = authorization.replace('Bearer ', '')
@@ -41,7 +42,6 @@ const verifyAuth = async (ctx, next) => {
     const result = jwt.verify(token, PUBLIC_KEY, {
       algorithms: ['RS256']
     })
-    console.log(result);
     ctx.user = result
     await next()
   } catch (err) {
@@ -49,7 +49,21 @@ const verifyAuth = async (ctx, next) => {
     return ctx.app.emit('error', error, ctx)
   }
 }
+const verifyPermission = async (ctx, next) => {
+  const { momentId } = ctx.params
+  const { id } = ctx.user
+  try {
+    const permission = await AuthService.checkMoment(momentId, id)
+    console.log("~~~~~~~~",permission);
+    if (!permission) throw new Error()
+    await next()
+  } catch (err) {
+    const error = new Error(errorType.UNPERMISSION)
+    return ctx.app.emit("error", error, ctx)
+  }
+}
 module.exports = {
   verifyLogin,
-  verifyAuth
+  verifyAuth,
+  verifyPermission
 }

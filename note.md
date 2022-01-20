@@ -305,9 +305,9 @@ controll
  detail(momentId)
 ```
 
-## 获取多条
+### 获取多条
 
-## 修改动态
+### 修改动态
 
 ```js
 //1 登录
@@ -317,24 +317,36 @@ momentRouter.patch('/:momentId',update)
 //midlleware
 verifyAuth
 
-verifyPermission 
-1.获取参数 
-2.查询是否具备权限
-3.UNPERMISSION
+verifyPermission (auth.middleware)
+{
+1.获取参数 userId 动态id
+2.查询是否具备权限 checkMoment
+3.UNPERMISSION 错误码
+}
+
 //controller
-update(ctx,next){
+async update(ctx,next){
    const { momentId } = ctx.params
    const { content } = ctx.request.body
-   const { id } = ctx.user;
-    ctx.body="修改内容"+momentId+content+id
+   const res= await momentService.update(content,momentId)
+    ctx.body=res
 }
+
+//moment.service.js 
+class momentService {
+ update(content,id) {
+  const statement='update moment set content = ? where id = ? '
+  const res = await connect.execute(statement,[ content ,id ])
+ return res;
+  }   
+}    
 
 //auth.service.js 通用查询权限
 class authService {
     checkMoment(momentId,userId) {
        try {
-               const statement=''
-       const [result] = await connect.execute(statement,[momentId,userId])
+         const statement=''
+       const [result] = await connect.execute(statement,    [momentId,userId])
        return result.length===0 ? false:true;    
        }catch(err){
            
@@ -345,10 +357,49 @@ class authService {
 
 
 
-## 删除动态
+### 删除动态
 
 ```js
 //1 登录
 //2 删除的权限
+momentRouter.delete('/:momentId',verifyAuth,verfiyPermission,remove)
+
+```
+
+## 评论
+
+### 创建评论
+
+```js
+commentRouter.post('/:momentId',verifyAuth,create)
+//comment.controller.js
+class CommentController {
+ async create(ctx,next){
+     //参数（id,comment）
+     const {commentId,comment} = ctx.request.body
+     const {id }=ctx.user;
+     //service请求 不是数组了
+    const result =await service.create(commentId,comment,id)
+     //返回
+    ctx.body=result
+ }
+}
+//comment.service.js
+class CommentService {
+    async create(commentId,comment,id) {
+        const statement=`INSERT INTO comment (content,moment_id,user_id) VALUES (?,?,?)` 
+     const [result]= await connections.execute(statement,[comment,commentId,id])
+     return result
+    }
+}
+```
+
+### 回复评论
+
+```js
+commentRouter.post('/:momentId/reply',verifyAuth,reply)
+//comment.controller.js       
+参数  url的id是本次评论的内容 (commonId,content,id,momentId)
+//comment.service.js
 ```
 
