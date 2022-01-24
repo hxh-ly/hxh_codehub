@@ -32,5 +32,19 @@ class MomentController {
     const res = await momentService.delete(momentId)
     ctx.body = res
   }
+  async addLabels(ctx, next) {
+    const { labels } = ctx
+    const { momentId } = ctx.params
+    console.log('fdsfsdf!!!!!!!!',labels, momentId);
+    //2.添加所有的标签
+    for (const label of labels) {
+      const isExit = await momentService.hasLabel(momentId, label.id)
+      if(!isExit) {
+        await momentService.addLabel(momentId, label.id)
+      }
+    }
+  
+    ctx.body = '给动态添加标签成功'
+  }
 }
 module.exports = new MomentController()

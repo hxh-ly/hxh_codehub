@@ -13,5 +13,10 @@ class UserService {
     //console.log("执行的结果是》。", result);
     return result[0]
   }
+  async updateAvatarById(userId, avatarUrl) {
+    const statement = 'UPDATE users SET avatar_url = ? where id = ?;'
+    const [result] =await connections.execute(statement, [avatarUrl, userId])
+    return result
+  }
 }
 module.exports = new UserService()

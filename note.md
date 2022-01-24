@@ -403,3 +403,337 @@ commentRouter.post('/:momentId/reply',verifyAuth,reply)
 //comment.service.js
 ```
 
+### 修改评论
+
+```js
+//
+commentRouter.patch('/:commentId/update',verifyAuth,verifyPermission,update)
+
+verifyPermission()
+{
+  const [resource] = Object.keys(ctx.params)
+   const resourceKey= resource.replace('Id','')
+}
+```
+
+### 删除评论
+
+```js
+//comment.router
+commentRouter.delete('/:commentId/delete',verifyAuth,verifyPermission,delete)                     
+```
+
+### 评论展示
+
+获取动态多态，需要添加字段 --- 动态的评论数
+
+点击动态进入详情
+
+- 接口 包括动态 和所有评论数
+
+  ```js
+  //sql难写  (还希望获取所有评论数据)
+  select m.id id,m.content content, m.createAt createTime, m.updateAt updateTime, JSON_OBJECT('id',u.id,'name',u.name )author,
+  JSON_ARRAYAGG(
+  JSON_OBJECT('id',c.id,'content',c.content,'commentId',c.comment_id,
+   'createTime',c.createAt, 
+   'user',JSON_OBJECT('id',cu.id,'name',cu.name) )
+  )    
+  from moment m 
+  LEFT JOIN users u ON m.user_id =u.id  
+  LEFT JOIN comment c ON m.id = c.moment_id
+  LEFT JOIN users cu ON cu.id = c.user_id
+  where m.id = 1 ;
+  ```
+
+-  动态  评论数分开
+
+  ```js
+  获取每条动态的所有评论数
+  //comment.router.js
+  commentRouter.get('/',list)
+  
+  ```
+
+## 标签接口
+
+### 创建标签
+
+```js
+label.router.js
+label.controller.js
+label.service.js
+```
+
+## 附：动态接口
+
+### 给动态添加标签
+
+```js
+定义接口
+作用:给动态添加标签
+请求：post
+接口：moment/label
+参数：labels
+例子：body {labels:['前端'] }
+```
+
+```js
+momentRouter.post('/:momentId/labels', 
+                  verifyAuth,
+                  verifyPermission, 
+                  verifyLabelExists,
+                  addLabels)
+中间件
+verifyLabelExists(ctx,next) 
+{
+    1.拿labels
+    2.遍历
+    3.没有的加到数据库
+    4.返回所有的数组
+    5.标签和动态的联系 ( moment_labels )
+}
+addLabels(ctx,next) {
+    labels
+    //添加所有的标签
+    判断 
+}
+```
+
+### 展示标签接口
+
+```js
+labelRouter.get('/',list)
+//label.controller.js
+list(ctx,next) {
+  const {limit,offset} =ctx.query
+}
+```
+
+## 附：动态多一个标签字段
+
+- 数组需要group by
+- 判断查到是否为空
+
+```sql
+ IF(count(c.id) ,JSON_ARRAYAGG(
+ JSON_OBJECT('id',c.id,'content',c.content,'commentId',c.comment_id,
+  'createTime',c.createAt, 
+  'user',JSON_OBJECT('id',cu.id,'name',cu.name) )
+ ) ,null)  comment, 
+IF(COUNT(l.id), JSON_ARRAYAGG(
+ JSON_OBJECT('id',l.id,'name',l.name)
+ ),null)
+ labels 
+ from moment m 
+ LEFT JOIN users u ON m.user_id =u.id  
+ LEFT JOIN comment c ON m.id = c.moment_id
+ LEFT JOIN users cu ON cu.id = c.user_id
+LEFT JOIN moment_label ml ON m.id = ml.moment_id
+LEFT JOIN label l ON l.id= ml.label_id
+
+
+Q：标签出现重复数据  在left join comment 查出3条
+```
+
+```sql
+  IF(count(c.id) ,JSON_ARRAYAGG(
+ JSON_OBJECT('id',c.id,'content',c.content,'commentId',c.comment_id,
+  'createTime',c.createAt, 
+  'user',JSON_OBJECT('id',cu.id,'name',cu.name) )
+ ) ,null)  comment, 
+LEFT JOIN comment c ON m.id = c.moment_id
+ LEFT JOIN users cu ON cu.id = c.user_id	
+
+
+// 正确做法~~~~~~~~~~~~~~~
+select m.id id,m.content content, m.createAt createTime, m.updateAt updateTime, JSON_OBJECT('id',u.id,'name',u.name )author,
+
+IF(COUNT(l.id), JSON_ARRAYAGG(
+ JSON_OBJECT('id',l.id,'name',l.name)
+ ),null)
+ labels 
+
+(SELECT IF(COUNT(c.id) ,JSON_ARRAYAGG(
+  JSON_OBJECT('id',c.id,'content',c.content,'commentId',c.comment_id,
+   'createTime',c.createAt, 
+   'user',JSON_OBJECT('id',cu.id,'name',cu.name) )
+  ) ,NULL)
+ 
+FROM comment c LEFT JOIN users cu ON c.user_id = cu.id where m.id = c.moment_id ) comments
+ 
+ from moment m 
+ LEFT JOIN users u ON m.user_id =u.id  
+LEFT JOIN moment_label ml ON m.id = ml.moment_id
+LEFT JOIN label l ON l.id= ml.label_id
+ where m.id =1
+ group by m.id
+```
+
+## 上传图片
+
+- 上传头像逻辑
+
+  - 定义上传图像的接口
+  - 定义获取图像的接口
+  - 请求用户信息时，获取头像
+
+- 实现
+
+  - 1 图片上传 /upload/avatar
+
+    目的：服务端可以保存一张图片
+
+  - 2 提供一个接口 让用户可以获取图片
+
+    /1/avatar ->找到图片\读取图片\content-type:image/jpeg
+
+  - 3 将URL存储到用户信息中 avatar头像的地址
+
+    avatarURL:头像的地址
+
+  - 4 获取信息，获取用户的头像
+
+### 头像上传接口
+
+```js
+fileRouter.post('/avatar', verifyAuth, avatarHandler, saveAvatarInfo)
+//controller
+saveAvatarInfo
+//service
+createAvatar(filename,mimetype,size,userId)
+```
+
+### 头像信息获取接口
+
+```js
+//file.rotuer
+fileRouter.post('/:userId/avatar', verifyAuth, avatarInfo)
+
+//file.service
+getAvatarByUserId(userId)
+
+//user.controller
+  async avatarInfo(ctx, next) {
+    const { userId } = ctx.params
+    //查到图片信息
+    const [avatarInfo] = await fileService.getAvatarByUserId(userId)
+    //展示在网页上 mimeType
+    ctx.response.set('content-type',avatarInfo.mimeType)
+    ctx.body = fs.createReadStream(`${AVATAR_PATH}/${avatarInfo.filename}`)
+  }
+```
+
+获取到moment时 用户信息应该包含头像地址
+
+- 用户表添加 `avatar_url`
+
+```js
+//在图片保存时需要将avatarUrl保存在user表中
+
+Q. avatarUrl :'./upload/avatar/xxxx'
+//.env
+APP_HOST:localhost
+
+//
+ async saveAvatarInfo(ctx, next) {
+    const avatarUrl = `${APP_HOST}:${APP_PORT}/upload/${id}/avatar` await useService.updateAvatarById(id, avatarUrl)   
+ }
+```
+
+### 上传动态的图片
+
+```js
+//file.middleware
+const pictureUpload = new Multer({
+  dest: PIC_PATH
+})
+const pictureHandler = pictureUpload.array('picture', 9)
+
+//router
+fileRouter.post('/picture',verifyAuth,pictureHandler,saveImgInfo)
+//controller
+ async savePictureInfo(ctx, next) {
+    const files = ctx.req.files
+    const { momentId } = ctx.query
+    const { id } = ctx.user
+    for (const file of files) {
+      const { filename, mimetype, size } = file
+      //service
+      await service.createFile(filename, mimetype, size, id, momentId)
+    }
+    ctx.body = '动态配图完成'
+ +++ 数据库 moment时要获取图片数量
+  }
+//service 
+createFile(filename, mimetype, size, id, momentId)
+```
+
+```sql
+(SELECT JSON_ARRAYAGG(CONCAT('http://localhost:8000/moment/images/',file.filename)) FROM file WHERE m.id = file.moment_id) images
+```
+
+### 提供访问动态图片的服务
+
+```js
+//提供类似的图片获取服务
+
+//router.js
+momentRouter.get('/images/:filename',fileInfo)
+
+//controll.js
+  async fileInfo(ctx, next) {
+    const { filename } = ctx.params
+    const fileRes = await service.getFileByFilename(filename)
+    ctx.response.set('content-type', fileRes.mimetype)
+    ctx.body = fs.createReadStream(`${PIC_PATH}/${fileRes.filename}`)
+  }
+//service
+ async getFileByFilename(filename) {
+    try {
+      const statement = `select * from file where filename = ?;`
+      const [result] = await connection.execute(statement, [filename])
+      return result[0]
+    } catch (error) {
+      console.log(error);
+    }
+  }
+```
+
+#### 上传的图片分服务器生成3种像素
+
+```js
+//router
+
+//
+
+//controller
+  async fileInfo(ctx, next) {
+    let { filename } = ctx.params
+    const fileRes = await service.getFileByFilename(filename)
+    const {type}= ctx.query
+        ctx.response.set('content-type', fileRes.mimetype)
+       const types =['large','middle','small'] 
+          if(types.some(item=>item==type)) {
+         filename=filename+`-${type}`
+     }
+    ctx.body = fs.createReadStream(`${PIC_PATH}/${filename}`)
+  }
+//图片生成不同尺寸
+async resizePic(ctx, next) {
+    try {
+      let files = ctx.req.files
+      for (const file of files) {
+        const destPath = path.join(file.destination, file.filename)
+        Jimp.read(file.path).then(image => {
+          image.resize(1280, Jimp.auto).write(`${destPath}-large`)
+          image.resize(640, Jimp.auto).write(`${destPath}-middle`)
+          image.resize(320, Jimp.auto).write(`${destPath}-small`)
+        })
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }
+```
+
